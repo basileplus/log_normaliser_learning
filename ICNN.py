@@ -1,4 +1,6 @@
+import torch
 from torch import nn
+import torch.nn.functional as F
 
 class PositiveLinear(nn.Module):
     """Linear layer with W >= 0 for ICNN layers"""
@@ -13,7 +15,7 @@ class PositiveLinear(nn.Module):
 class ICNN(nn.Module):
     """
     Input-Convex Neural Network  f : R^n_in -> R^n_out.
-    Recurrence: z_{t+1} = σ(œ z_t + A_t θ),  W_t ≥ 0,  σ = softplus.
+    Recurrence: z_{t+1} = σ(W_t z_t + A_t θ),  W_t ≥ 0,  σ = softplus.
     A final PositiveLinear layer outputs a scalar.
     """
     def __init__(self, n_in, n_out, h=16, depth=4):
@@ -24,7 +26,7 @@ class ICNN(nn.Module):
         self.As  = nn.ModuleList([
             nn.Linear(n_in, h) for _ in range(depth)
         ])
-        self.outLayer = PositiveLinear(h, n_out)
+        self.outLayer = nn.Linear(h, n_out) # last layer is regular Linear
 
     def forward(self, theta):
         z = F.softplus(self.As[0](theta))
