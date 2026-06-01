@@ -6,4 +6,4 @@ def estimate_mean(samples):
 
 def estimate_cov(samples):
     mean = estimate_mean(samples)
-    return 1/samples.shape[0] * ((samples - mean).T @ (samples - mean))
+    return 1/(samples.shape[0]-1) * ((samples - mean).T @ (samples - mean))
