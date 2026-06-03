@@ -1,6 +1,7 @@
 from StatisticalModel import NormalDistribution1D
 from estimators import estimate_mean, estimate_cov
 from ICNN import ICNN
+from DensityVisualizer import DensityVisualizer
 import torch
 
 
@@ -9,6 +10,7 @@ T = 1024
 eta_set  = torch.rand((T,1))
 batch_size = 512
 model = ICNN(1,1)
+visualizer = DensityVisualizer()
 params = list(model.parameters())
 lr = torch.ones(T)*1e-3
 
@@ -19,6 +21,9 @@ for t in range(T):
     A_star = model(eta)
     theta_pred = torch.autograd.grad(A_star, eta, create_graph=True)[0] # theta = grad_eta A*(eta)
     stat_model = NormalDistribution1D(theta=theta_pred)
+
+    if t % 100 == 0:
+        visualizer.log(stat_model)
 
     batch1 = stat_model.get_samples(batch_size)
     batch2 = stat_model.get_samples(batch_size)
@@ -42,5 +47,5 @@ for t in range(T):
     if t%100==0:
        print(f"Step {t}/{T} completed | theta_pred: [{theta_pred[0].item():.4f}] ")
     
-
+visualizer.save_gif(duration=2, bins=30)
 # The estimated theta_pred corresponds to mean of our proba distrib and should be = 0.5
