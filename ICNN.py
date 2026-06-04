@@ -26,7 +26,7 @@ class ICNN(nn.Module):
         self.As  = nn.ModuleList([
             nn.Linear(n_in, h) for _ in range(depth)
         ])
-        self.outLayer = nn.Linear(h, n_out) # last layer is regular Linear
+        self.outLayer = PositiveLinear(h, n_out) # last layer is regular Linear
 
     def forward(self, theta):
         z = F.softplus(self.As[0](theta))
