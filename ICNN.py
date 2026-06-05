@@ -7,9 +7,10 @@ class PositiveLinear(nn.Module):
     def __init__(self, in_dim, out_dim):
         super().__init__()
         self.W = nn.Parameter(torch.randn(in_dim, out_dim) * 0.1)
+        self.b = nn.Parameter(torch.zeros(out_dim))
 
     def forward(self, x):
-        return x @ F.softplus(self.W)
+        return x @ F.softplus(self.W) + self.b# ICNN should use softplus, no clamping otherwise gradient is null if W<0. Classic issue
 
 
 class ICNN(nn.Module):
@@ -26,7 +27,7 @@ class ICNN(nn.Module):
         self.As  = nn.ModuleList([
             nn.Linear(n_in, h) for _ in range(depth)
         ])
-        self.outLayer = PositiveLinear(h, n_out) # last layer is regular Linear
+        self.outLayer = nn.Linear(h, n_out) # last layer is regular Linear to allow negative outputs
 
     def forward(self, theta):
         z = F.softplus(self.As[0](theta))
