@@ -35,7 +35,7 @@ class NormalDistribution1D(StatisticalModel):
 class NormalDistribution1D_unknownStd(StatisticalModel):
     """
     Define normal distribution with unknown mean and UNKNOWN variance
-    theta = [mean/std**2, -1/(2*std**2)]
+    theta = [mean/std**2, 1/(2*std**2)]
     """ 
     def __init__(self,theta):
         self.std = torch.sqrt(1/(2*theta[1]))

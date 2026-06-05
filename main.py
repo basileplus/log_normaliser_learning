@@ -1,7 +1,7 @@
 from StatisticalModel import NormalDistribution1D, NormalDistribution1D_unknownStd
 from estimators import estimate_mean, estimate_cov
 from ICNN import ICNN
-from Visualizer import ConjugacyVisualizer, RoundTripVisualizer
+from Visualizer import ConjugacyVisualizer
 import torch.nn.functional as F
 import torch
 
@@ -9,12 +9,13 @@ import torch
 # Input
 T = 4096
 mu = torch.randn(T) -3.5
-var = 0.01 + torch.rand(T) 
-eta_set = torch.stack([mu,(mu**2 + var)],dim=1) # expectation parameters corresponding to ~N(mu,std²)
+var = 0.1 + torch.rand(T) 
+eta_set = torch.stack([mu,-(mu**2 + var)],dim=1) # expectation parameters corresponding to ~N(mu,std²)
 batch_size = 512
 model = ICNN(2,1)
 params = list(model.parameters())
 lr = torch.ones(T)*1e-3
+visu = False # set a True to save a gif
 
 eta_probe = torch.zeros((len(eta_set), eta_set.shape[1]))
 eta_probe[:, 0] = eta_set[:, 0]
@@ -28,7 +29,7 @@ for t in range(T):
     theta_valid = torch.stack([theta_pred[0],F.softplus(theta_pred[1])]) # ensures 1/std**2 > 0
     stat_model = NormalDistribution1D_unknownStd(theta=theta_valid)
 
-    if t % 100 == 0:
+    if (visu) and (t % 100 == 0):
         conjVis.log(model)
 
     batch1 = stat_model.get_samples(batch_size)
@@ -55,5 +56,5 @@ for t in range(T):
         std = torch.sqrt(1/(2*theta_valid[1]))
         mean = theta_valid[0] * (std**2)
         print(f"Step {t}/{T} completed | mean pred: {mean} | std pred: {std} | grad norm: {grad_norm**0.5}")
-    
-conjVis.save_gif()
+if visu:
+    conjVis.save_gif()

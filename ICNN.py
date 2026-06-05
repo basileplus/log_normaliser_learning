@@ -9,7 +9,7 @@ class PositiveLinear(nn.Module):
         self.W = nn.Parameter(torch.randn(in_dim, out_dim) * 0.1)
 
     def forward(self, x):
-        return x @ self.W.clamp(min=0)
+        return x @ F.softplus(self.W)
 
 
 class ICNN(nn.Module):
