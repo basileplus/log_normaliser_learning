@@ -40,6 +40,12 @@ for t in range(T):
     cov_mat = estimate_cov(t2)
 
     v = cov_mat @ (mean - eta)
+
+    # Clamp v, prevent gradient explosions occuring from cov estimate (var X^2~sigma^4)
+    v_norm = v.norm()
+    if v_norm > 10:
+        v = 10 * v / v_norm
+
     grad = torch.autograd.grad(
         outputs=theta_valid,
         inputs=params,
