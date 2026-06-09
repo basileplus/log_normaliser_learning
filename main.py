@@ -14,7 +14,7 @@ eta_set = torch.stack([mu,-(mu**2 + var)],dim=1) # expectation parameters corres
 batch_size = 512
 model = ICNN(2,1)
 params = list(model.parameters())
-lr = torch.ones(T)*1e-3
+lr0 = torch.ones(T)*1e-3
 visu = False # set a True to save a gif
 
 eta_probe = torch.zeros((len(eta_set), eta_set.shape[1]))
@@ -22,15 +22,19 @@ eta_probe[:, 0] = eta_set[:, 0]
 conjVis = ConjugacyVisualizer(eta_probe)
 
 # Training loop
-for t in range(T):
+for t in range(1,T):
+    lr = lr0/t
     eta = eta_set[t].detach().requires_grad_(True)  
     A_star = model(eta)
     theta_pred = torch.autograd.grad(A_star, eta, create_graph=True)[0] # theta = grad_eta A*(eta)
     theta_valid = torch.stack([theta_pred[0],F.softplus(theta_pred[1])]) # ensures 1/std**2 > 0
     stat_model = NormalDistribution1D_unknownStd(theta=theta_valid)
 
-    if (visu) and (t % 100 == 0):
+    if (visu) and (t % 10 == 0):
         conjVis.log(model)
+
+    if theta_valid[1].isnan() or theta_valid[1]<0:
+         break
 
     batch1 = stat_model.get_samples(batch_size)
     batch2 = stat_model.get_samples(batch_size)
@@ -56,11 +60,16 @@ for t in range(T):
     with torch.no_grad():
             for p, g in zip(params, grad):
                 if g is not None:
+                    if g is not None and torch.isnan(g).any():
+                        print("NaN détecté dans le gradient")
                     grad_norm += g.norm().item()**2
                     p.sub_(lr[t] * g)
     if t%100==0:
         std = torch.sqrt(1/(2*theta_valid[1]))
         mean = theta_valid[0] * (std**2)
         print(f"Step {t}/{T} completed | mean pred: {mean} | std pred: {std} | grad norm: {grad_norm**0.5}")
+    
+    loss = (mean - eta)**2
+
 if visu:
     conjVis.save_gif()
