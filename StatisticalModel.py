@@ -23,11 +23,12 @@ class NormalDistribution1D(StatisticalModel):
     """ 
     def __init__(self,theta,std=torch.tensor(1)):
         self.std = std
-        self.mean = theta[0] * (self.std**2)
+        self.mean = theta[:,0] * (self.std**2)
         self.theta = theta
 
     def get_samples(self,n):
-        return torch.empty(n).normal_(mean=self.mean.item(), std=self.std.item())
+        eps = torch.randn(self.mean.shape[0], n, device=self.mean.device)
+        return self.mean.unsqueeze(1) + self.std.unsqueeze(1) * eps    
     
     def t(self, x):
         return torch.stack([x], dim=-1) 
@@ -38,12 +39,13 @@ class NormalDistribution1D_unknownStd(StatisticalModel):
     theta = [mean/std**2, 1/(2*std**2)]
     """ 
     def __init__(self,theta):
-        self.std = torch.sqrt(1/(2*theta[1]))
-        self.mean = theta[0] * (self.std**2)
+        self.std = torch.sqrt(1/(2*theta[:,1]))
+        self.mean = theta[:,0] * (self.std**2)
         self.theta = theta
 
     def get_samples(self,n):
-        return torch.empty(n).normal_(mean=self.mean.item(), std=self.std.item())
+        eps = torch.randn(self.mean.shape[0], n, device=self.mean.device)
+        return self.mean.unsqueeze(1) + self.std.unsqueeze(1) * eps    
     
     def t(self, x):
         return torch.stack([x,-x**2], dim=-1) 
