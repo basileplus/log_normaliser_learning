@@ -3,3 +3,4 @@ __pycache__/estimators.cpython-313.pyc
 __pycache__/ICNN.cpython-313.pyc
 *.gif
 *.png
+*.pyc
