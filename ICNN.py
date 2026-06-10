@@ -6,7 +6,7 @@ class PositiveLinear(nn.Module):
     """Linear layer with W >= 0 for ICNN layers"""
     def __init__(self, in_dim, out_dim, eps=0.001):
         super().__init__()
-        self.W = nn.Parameter(torch.randn(in_dim, out_dim) * 0.1) 
+        self.W = nn.Parameter(torch.randn(in_dim, out_dim) * 0.01 -5 ) 
         self.b = nn.Parameter(torch.zeros(out_dim))
 
     def forward(self, x, eps=0.001):
@@ -27,7 +27,7 @@ class ICNN(nn.Module):
         self.As  = nn.ModuleList([
             nn.Linear(n_in, h) for _ in range(depth)
         ])
-        self.outLayer = nn.Linear(h, n_out)
+        self.outLayer = PositiveLinear(h, n_out)
 
     def forward(self, theta):
         z = F.softplus(self.As[0](theta))

@@ -13,7 +13,7 @@ mu = torch.randn(T) -3.5
 var = 0.01 + torch.rand(T) 
 eta_set = torch.stack([mu,-(mu**2 + var)],dim=1) # expectation parameters corresponding to ~N(mu,std²)
 batch_size = 64
-num_epoch=1
+num_epoch=3
 
 data = TensorDataset(eta_set)
 loader = DataLoader(
@@ -33,8 +33,8 @@ conjVis = ConjugacyVisualizer(eta_probe)
 
 # Training loop
 for epoch in range(num_epoch):
+    print(f"=== Epoch {epoch} ===")  
     for (eta_batch,) in loader:
-        
         eta_batch = eta_batch.detach().requires_grad_(True)  
         A_star = model(eta_batch).squeeze()
         theta_pred = torch.autograd.grad(
