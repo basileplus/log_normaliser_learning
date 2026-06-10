@@ -4,8 +4,24 @@ from ICNN import ICNN
 from Visualizer import ConjugacyVisualizer
 import torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
+import matplotlib.pyplot as plt
 import torch
 
+def compute_loss(model, eta_set, n_samples=256):
+    """
+    Compute loss of the model. Not differenciable, only used to plot loss evolution
+    """
+    eta = eta_set.detach().requires_grad_(True)
+    A_star = model(eta).squeeze()
+    theta_pred = torch.autograd.grad(A_star.sum(), eta)[0]
+    theta_valid = torch.stack([theta_pred[:,0], F.softplus(theta_pred[:,1])], dim=1).detach()
+
+    with torch.no_grad():
+        stat_model = NormalDistribution1D_unknownStd(theta=theta_valid)
+        t_samples = stat_model.t(stat_model.get_samples(n_samples))
+        mean = estimate_mean(t_samples)
+        loss = ((mean - eta_set) ** 2).sum(dim=-1).mean().item()
+    return loss
 
 # Input
 T = 2048
@@ -13,6 +29,7 @@ mu = torch.randn(T) -3.5
 var = 0.01 + torch.rand(T) 
 eta_set = torch.stack([mu,-(mu**2 + var)],dim=1) # expectation parameters corresponding to ~N(mu,std²)
 batch_size = 64
+n_sample = 256
 num_epoch=3
 
 data = TensorDataset(eta_set)
@@ -24,12 +41,14 @@ loader = DataLoader(
 
 model = ICNN(2,1)
 params = list(model.parameters())
-lr = 1e-3
-visu = False # set a True to save a gif
+lr = 1e-1
+visu = False # True to save a gif
 
 eta_probe = torch.zeros((len(eta_set), eta_set.shape[1]))
 eta_probe[:, 0] = eta_set[:, 0]
 conjVis = ConjugacyVisualizer(eta_probe)
+
+losses = []
 
 # Training loop
 for epoch in range(num_epoch):
@@ -51,8 +70,8 @@ for epoch in range(num_epoch):
         if torch.isnan(theta_valid).any() :
             break
 
-        batch1 = stat_model.get_samples(batch_size)
-        batch2 = stat_model.get_samples(batch_size)
+        batch1 = stat_model.get_samples(n_sample)
+        batch2 = stat_model.get_samples(n_sample)
         t1 = stat_model.t(batch1)
         t2 = stat_model.t(batch2)
         mean = estimate_mean(t1)
@@ -80,11 +99,13 @@ for epoch in range(num_epoch):
                             print("NaN détecté dans le gradient")
                         grad_norm += g.norm().item()**2
                         p.sub_(lr * g)
-        # if t%100==0:
-        #     std = torch.sqrt(1/(2*theta_valid[1]))
-        #     mean = theta_valid[0] * (std**2)
-        #     print(f"Step {t}/{T} completed | grad norm: {grad_norm**0.5}")
-    
+
+        # Compute loss
+        loss = compute_loss(model, eta_set)
+        losses.append(loss)
+
+plt.plot(losses)
+plt.savefig("loss.png")
 
 if visu:
     conjVis.save_gif()
