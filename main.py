@@ -70,6 +70,7 @@ if train:
 
             if (visu):
                 heatVis.log(model)
+                heatVis.log_grad(model)
 
             if torch.isnan(theta_valid).any() :
                 break
@@ -112,6 +113,8 @@ if train:
     plt.savefig("loss.png")
 
 if visu:
-    heatVis.save_gif()
-    heatVis.save_plot_GT()
-    heatVis.save_plot_model(model)
+    #heatVis.save_gif()
+    heatVis.save_gif_grad()
+    heatVis.save_plot_GT_grad()
+    heatVis.save_plot_model_grad(model)
+    #heatVis.save_plot_model(model)
