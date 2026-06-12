@@ -5,6 +5,7 @@ from Visualizer import ICNNHeatmapVisualizer
 import torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
 import matplotlib.pyplot as plt
+from experiment_logger import logExperimentResult
 import torch
 
 def compute_loss(model, eta_set, n_samples=256):
@@ -124,7 +125,22 @@ if train:
 
 if visu:
     #heatVis.save_gif()
-    heatVis.save_gif_grad()
+    #heatVis.save_gif_grad()
     heatVis.save_plot_GT_grad()
     heatVis.save_plot_model_grad(model)
     heatVis.save_plot_model(model)
+
+
+# Log results in a csv
+
+logExperimentResult(
+    optimizer=optim,
+    mu=mu,
+    var=var,
+    batch_size=batch_size,
+    dataset_size=T,
+    n_epochs=num_epoch,
+    n_samples=n_sample,
+    losses=losses,
+    note="Gaussian, unknown std and mu",
+)
