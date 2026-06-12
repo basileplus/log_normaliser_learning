@@ -1,6 +1,4 @@
-# experiment_logger.py
-
-import csv
+import json
 import os
 from datetime import datetime
 
@@ -15,9 +13,10 @@ def logExperimentResult(
     n_epochs,
     n_samples,
     losses,
+    best_loss,
     learning_rate=None,
     note="",
-    filename="experiments.csv",
+    filename="experiments.jsonl",
 ):
     results = {
         "datetime": datetime.now().isoformat(),
@@ -36,15 +35,11 @@ def logExperimentResult(
         "var_std": var.std().item(),
         "n_epochs": n_epochs,
         "n_samples": n_samples,
-        "final_loss": sum(losses[-10:]) / min(len(losses), 10),
+        "final_loss": sum(losses[-10:]) / min(len(losses), 10) if losses else None,
+        "best_loss": best_loss,
     }
 
-    file_exists = os.path.isfile(filename)
+    with open(filename, "a") as f:
+        f.write(json.dumps(results) + "\n")
 
-    with open(filename, "a", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=results.keys())
-
-        if not file_exists:
-            writer.writeheader()
-
-        writer.writerow(results)
+    print(f"Results successfully saved in {filename}")

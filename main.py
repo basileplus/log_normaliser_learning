@@ -31,7 +31,7 @@ T = 4096
 mu = torch.randn(T)
 var = 0.01 + torch.rand(T) 
 eta_set = torch.stack([mu,-(mu**2 + var)],dim=1) # expectation parameters corresponding to ~N(mu,std²)
-batch_size = 64
+batch_size = 16
 n_sample = 512
 num_epoch=16
 
@@ -52,13 +52,16 @@ eta_probe[:, 0] = eta_set[:, 0]
 heatVis = ICNNHeatmapVisualizer(eta_set)
 
 losses = []
+batch_idx=0
+log_every = int((T*num_epoch)/(50*batch_size))
+best_loss = float("inf")
 
 optim = torch.optim.Adam(model.parameters(), lr=1e-2)
 
 # Training loop
 if train:
     for epoch in range(num_epoch):
-        print(f"=== Epoch {epoch+1} ===")  
+        print(f"=== Epoch {epoch+1} | loss={sum(losses[-10:])/len(losses[-10:]) if losses else "N/A"} ===")  
         for (eta_batch,) in loader:
 
             optim.zero_grad()
@@ -74,8 +77,9 @@ if train:
             stat_model = NormalDistribution1D_unknownStd(theta=theta_valid)
 
             if (visu):
-                heatVis.log(model)
-                heatVis.log_grad(model)
+                if batch_idx % log_every ==0:
+                    heatVis.log(model)
+                    heatVis.log_grad(model)
 
             if torch.isnan(theta_valid).any() :
                 break
@@ -117,18 +121,30 @@ if train:
 
             # Compute loss
             loss = compute_loss(model, eta_set)
+            if loss < best_loss:
+                best_loss = loss
+                torch.save(model.state_dict(), "best_model.pt")
             losses.append(loss)
+            batch_idx+=1
 
-    plt.plot(losses)
-    print(f"Final loss = {sum(losses[-10:])/len(losses[-10:])}")
+    plt.plot(losses, label=f"Best loss={best_loss}")
+    plt.legend()
     plt.savefig("loss.png")
+    print(f"Final loss = {sum(losses[-10:])/len(losses[-10:])}")
+    print(f"Best loss = {best_loss}")
+
+    # load best performing model
+    model.load_state_dict(torch.load("best_model.pt"))
+    if (visu):
+        heatVis.log(model)
+        heatVis.log_grad(model)
 
 if visu:
     #heatVis.save_gif()
     #heatVis.save_gif_grad()
     heatVis.save_plot_GT_grad()
     heatVis.save_plot_model_grad(model)
-    heatVis.save_plot_model(model)
+    #heatVis.save_plot_model(model)
 
 
 # Log results in a csv
@@ -142,5 +158,6 @@ logExperimentResult(
     n_epochs=num_epoch,
     n_samples=n_sample,
     losses=losses,
+    best_loss=best_loss,
     note="Gaussian, unknown std and mu",
 )

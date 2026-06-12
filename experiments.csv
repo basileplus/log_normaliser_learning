@@ -1,2 +1,0 @@
-datetime,note,optimizer,learning_rate,batch_size,dataset_size,mu_mean,mu_std,var_mean,var_std,n_epochs,n_samples,final_loss
-2026-06-12T11:35:47.270446,"Gaussian, unknown std and mu",Adam,0.01,64,4096,0.0009122109040617943,1.0006715059280396,0.5053621530532837,0.28926539421081543,16,512,0.05548295341432095
