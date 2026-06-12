@@ -26,13 +26,13 @@ def compute_loss(model, eta_set, n_samples=256):
     return loss
 
 # Input
-T = 2048
+T = 4096
 mu = torch.randn(T)
 var = 0.01 + torch.rand(T) 
 eta_set = torch.stack([mu,-(mu**2 + var)],dim=1) # expectation parameters corresponding to ~N(mu,std²)
 batch_size = 64
-n_sample = 256
-num_epoch=3
+n_sample = 512
+num_epoch=16
 
 data = TensorDataset(eta_set)
 loader = DataLoader(
@@ -43,7 +43,6 @@ loader = DataLoader(
 
 model = ICNN(2,1)
 params = list(model.parameters())
-lr = 1e-1
 visu = True # True to save a gif
 train = True
 
@@ -53,11 +52,16 @@ heatVis = ICNNHeatmapVisualizer(eta_set)
 
 losses = []
 
+optim = torch.optim.Adam(model.parameters(), lr=1e-2)
+
 # Training loop
 if train:
     for epoch in range(num_epoch):
-        print(f"=== Epoch {epoch} ===")  
+        print(f"=== Epoch {epoch+1} ===")  
         for (eta_batch,) in loader:
+
+            optim.zero_grad()
+
             eta_batch = eta_batch.detach().requires_grad_(True)  
             A_star = model(eta_batch).squeeze()
             theta_pred = torch.autograd.grad(
@@ -92,7 +96,7 @@ if train:
             grad = torch.autograd.grad(
                 outputs=theta_valid,
                 inputs=params,
-                grad_outputs=2*v,
+                grad_outputs=(2*v)/batch_size,
                 allow_unused=True  
             )
 
@@ -103,13 +107,19 @@ if train:
                             if g is not None and torch.isnan(g).any():
                                 print("NaN détecté dans le gradient")
                             grad_norm += g.norm().item()**2
-                            p.sub_(lr * g)
+                            if p.grad is None :
+                                p.grad = g
+                            else :
+                                p.grad+=g
+            
+            optim.step()
 
             # Compute loss
             loss = compute_loss(model, eta_set)
             losses.append(loss)
 
     plt.plot(losses)
+    print(f"Final loss = {sum(losses[-10:])/len(losses[-10:])}")
     plt.savefig("loss.png")
 
 if visu:
@@ -117,4 +127,4 @@ if visu:
     heatVis.save_gif_grad()
     heatVis.save_plot_GT_grad()
     heatVis.save_plot_model_grad(model)
-    #heatVis.save_plot_model(model)
+    heatVis.save_plot_model(model)
