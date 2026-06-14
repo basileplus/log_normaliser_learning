@@ -5,6 +5,13 @@ import io
 import torch.nn.functional as F
 import numpy as np
 
+def save_loss_plot(train_losses, test_losses, filename="loss.png"):
+    plt.figure()
+    plt.plot(train_losses, label="Train loss")
+    plt.plot(test_losses, label="Test loss")
+    plt.legend()
+    plt.savefig(filename)
+
 class ConjugacyVisualizer:
     """
     Used to create a gif of the learned mapping through training. Visualize first coordinate theta[0]

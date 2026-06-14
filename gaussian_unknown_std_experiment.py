@@ -1,7 +1,7 @@
-from StatisticalModel import NormalDistribution1D, NormalDistribution1D_unknownStd
+from StatisticalModel import NormalDistribution1D_unknownStd
 from estimators import estimate_mean, estimate_cov
 from ICNN import ICNN
-from Visualizer import ICNN2DHeatmapVisualizer
+from Visualizer import ICNN2DHeatmapVisualizer, save_loss_plot
 import torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
 import matplotlib.pyplot as plt
@@ -135,11 +135,6 @@ if train:
             test_losses.append(test_loss)
             batch_idx+=1
 
-    plt.figure()
-    plt.plot(train_losses, label="Train loss")
-    plt.plot(test_losses, label="Test loss")
-    plt.legend()
-    plt.savefig("loss.png")
     print(f"Final training loss = {sum(train_losses[-10:])/len(train_losses[-10:])} | Final test loss = {sum(test_losses[-10:])/len(test_losses[-10:])}")
     print(f"Best loss = {best_loss}")
 
@@ -149,17 +144,9 @@ if train:
         heatVis.log(model)
         heatVis.log_grad(model)
 
-if visu:
-    #heatVis.save_gif()
-    #heatVis.save_gif_grad()
-    heatVis.save_plot_GT_grad()
-    heatVis.save_plot_model_grad(model)
-    #heatVis.save_plot_model(model)
-
-
 # Log results in a csv
 if train:
-    logExperimentResult(
+    exp_id = logExperimentResult(
         optimizer=optim,
         mu=mu,
         var=var,
@@ -173,3 +160,14 @@ if train:
         note="Gaussian, unknown std and mu",
         target_distrib="1D Gaussian, unknown std"
     )
+
+if visu:
+    if train:
+        heatVis.save_gif(f"visualizations/unknownStd_model_{exp_id}.gif")
+        heatVis.save_gif_grad(f"visualizations/unknownStd_grad_gif_{exp_id}.gif")
+        heatVis.save_plot_GT_grad(f"visualizations/unknownStd_gt_grad_{exp_id}.png")
+        heatVis.save_plot_model_grad(model, f"visualizations/unknownStd_model_grad_{exp_id}.png")
+        heatVis.save_plot_model(model, f"visualizations/unknownStd_model_{exp_id}.png")
+        save_loss_plot(train_losses, test_losses, filename=f"visualizations/unknownStd_loss_{exp_id}.png")
+    else :
+        heatVis.save_plot_GT_grad()

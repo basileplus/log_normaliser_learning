@@ -20,7 +20,10 @@ def logExperimentResult(
     note="",
     filename="experiments.jsonl",
 ):
+    experiment_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+
     results = {
+        "experiment_id": experiment_id,
         "datetime": datetime.now().isoformat(),
         "target_distrib" : target_distrib,
         "note": note,
@@ -47,3 +50,4 @@ def logExperimentResult(
         f.write(json.dumps(results) + "\n")
 
     print(f"Results successfully saved in {filename}")
+    return experiment_id
