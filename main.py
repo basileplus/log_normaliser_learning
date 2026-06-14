@@ -35,9 +35,13 @@ batch_size = 16
 n_sample = 512
 num_epoch=16
 
-data = TensorDataset(eta_set)
+perm = torch.randperm(T)
+eta_train_set = eta_set[perm[:int(0.8*T)]]
+eta_test_set = eta_set[perm[int(0.8*T):]]
+
+train_data = TensorDataset(eta_train_set)
 loader = DataLoader(
-     dataset=data,
+     dataset=train_data,
      batch_size=batch_size,
      shuffle=True
 )
@@ -51,7 +55,8 @@ eta_probe = torch.zeros((len(eta_set), eta_set.shape[1]))
 eta_probe[:, 0] = eta_set[:, 0]
 heatVis = ICNNHeatmapVisualizer(eta_set)
 
-losses = []
+train_losses = []
+test_losses = []
 batch_idx=0
 log_every = int((T*num_epoch)/(50*batch_size))
 best_loss = float("inf")
@@ -61,7 +66,7 @@ optim = torch.optim.Adam(model.parameters(), lr=1e-2)
 # Training loop
 if train:
     for epoch in range(num_epoch):
-        print(f"=== Epoch {epoch+1} | loss={sum(losses[-10:])/len(losses[-10:]) if losses else "N/A"} ===")  
+        print(f"=== Epoch {epoch+1} | train_loss={sum(train_losses[-10:])/len(train_losses[-10:]) if train_losses else "N/A"} | test_loss={sum(test_losses[-10:])/len(test_losses[-10:]) if test_losses else "N/A"}===")        
         for (eta_batch,) in loader:
 
             optim.zero_grad()
@@ -120,17 +125,22 @@ if train:
             optim.step()
 
             # Compute loss
-            loss = compute_loss(model, eta_set)
-            if loss < best_loss:
-                best_loss = loss
+            train_loss = compute_loss(model, eta_train_set)
+            test_loss = compute_loss(model, eta_test_set)
+            if test_loss < best_loss:  
+                best_loss = test_loss
                 torch.save(model.state_dict(), "best_model.pt")
-            losses.append(loss)
+
+            train_losses.append(train_loss)
+            test_losses.append(test_loss)
             batch_idx+=1
 
-    plt.plot(losses, label=f"Best loss={best_loss}")
+    plt.figure()
+    plt.plot(train_losses, label="Train loss")
+    plt.plot(test_losses, label="Test loss")
     plt.legend()
     plt.savefig("loss.png")
-    print(f"Final loss = {sum(losses[-10:])/len(losses[-10:])}")
+    print(f"Final training loss = {sum(train_losses[-10:])/len(train_losses[-10:])} | Final test loss = {sum(test_losses[-10:])/len(test_losses[-10:])}")
     print(f"Best loss = {best_loss}")
 
     # load best performing model
@@ -148,16 +158,17 @@ if visu:
 
 
 # Log results in a csv
-
-logExperimentResult(
-    optimizer=optim,
-    mu=mu,
-    var=var,
-    batch_size=batch_size,
-    dataset_size=T,
-    n_epochs=num_epoch,
-    n_samples=n_sample,
-    losses=losses,
-    best_loss=best_loss,
-    note="Gaussian, unknown std and mu",
-)
+if train:
+    logExperimentResult(
+        optimizer=optim,
+        mu=mu,
+        var=var,
+        batch_size=batch_size,
+        dataset_size=T,
+        n_epochs=num_epoch,
+        n_samples=n_sample,
+        train_losses = train_losses,
+        test_losses = test_losses,
+        best_loss=best_loss,
+        note="Gaussian, unknown std and mu",
+    )

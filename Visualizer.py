@@ -43,7 +43,7 @@ class ConjugacyVisualizer:
                 theta_snapshot[:,0]
             )   
             ax.set_title(f"Snapshot {i}")
-            ax.set_xlabel("$\eta_1$")
+            ax.set_xlabel("$\\eta_1$")
             ax.set_ylabel("$\\theta_1$")
             buf = io.BytesIO()
             fig.savefig(buf, format="png")
@@ -171,7 +171,7 @@ class ICNNHeatmapVisualizer:
                 vmin=vmin1, vmax=vmax1, cmap='RdBu_r',
             )
             plt.colorbar(im1, ax=axes[0], label=r"$\hat\theta_1(\eta)$")
-            axes[0].set_title(r"$\hat\theta_1 = \partial_{\eta_1} A^*$" + f"  —  step {i}")
+            axes[0].set_title(r"$\hat\theta_1 = \partial_{\eta_1} ICNN$" + f"  —  step {i}")
             axes[0].set_xlabel(r"$\eta_1$"); axes[0].set_ylabel(r"$\eta_2$")
  
             # theta_2: sequential colormap (always positive)
@@ -180,7 +180,7 @@ class ICNNHeatmapVisualizer:
                 vmin=vmin2, vmax=vmax2, cmap='plasma',
             )
             plt.colorbar(im2, ax=axes[1], label=r"$\hat\theta_2(\eta)$")
-            axes[1].set_title(r"$\hat\theta_2 = \mathrm{softplus}(\partial_{\eta_2} A^*)$" + f"  —  step {i}")
+            axes[1].set_title(r"$\hat\theta_2 = \mathrm{softplus}(\partial_{\eta_2} ICNN)$" + f"  —  step {i}")
             axes[1].set_xlabel(r"$\eta_1$"); axes[1].set_ylabel(r"$\eta_2$")
  
             plt.tight_layout()
@@ -275,7 +275,7 @@ class ICNNHeatmapVisualizer:
             vmin=vmin1, vmax=vmax1, cmap='RdBu_r',
         )
         plt.colorbar(im1, ax=axes[0], label=r"$\hat\theta_1(\eta)$")
-        axes[0].set_title(r"Model $\hat\theta_1 = \partial_{\eta_1} A^*$")
+        axes[0].set_title(r"Model $\hat\theta_1 = \partial_{\eta_1} ICNN$")
         axes[0].set_xlabel(r"$\eta_1$"); axes[0].set_ylabel(r"$\eta_2$")
  
         im2 = axes[1].imshow(
@@ -283,7 +283,7 @@ class ICNNHeatmapVisualizer:
             vmin=vmin2, vmax=vmax2, cmap='plasma',
         )
         plt.colorbar(im2, ax=axes[1], label=r"$\hat\theta_2(\eta)$")
-        axes[1].set_title(r"Model $\hat\theta_2 = \mathrm{softplus}(\partial_{\eta_2} A^*)$")
+        axes[1].set_title(r"Model $\hat\theta_2 = \mathrm{softplus}(\partial_{\eta_2} ICNN)$")
         axes[1].set_xlabel(r"$\eta_1$"); axes[1].set_ylabel(r"$\eta_2$")
  
         plt.tight_layout()

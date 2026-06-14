@@ -12,7 +12,8 @@ def logExperimentResult(
     dataset_size,
     n_epochs,
     n_samples,
-    losses,
+    train_losses,
+    test_losses,
     best_loss,
     learning_rate=None,
     note="",
@@ -35,7 +36,8 @@ def logExperimentResult(
         "var_std": var.std().item(),
         "n_epochs": n_epochs,
         "n_samples": n_samples,
-        "final_loss": sum(losses[-10:]) / min(len(losses), 10) if losses else None,
+        "final_train_loss": sum(train_losses[-10:]) / min(len(train_losses), 10) if train_losses else None,
+        "final_test_loss": sum(test_losses[-10:]) / min(len(test_losses), 10) if test_losses else None,
         "best_loss": best_loss,
     }
 
