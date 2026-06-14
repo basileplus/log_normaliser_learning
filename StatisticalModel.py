@@ -19,16 +19,16 @@ class StatisticalModel():
 class NormalDistribution1D(StatisticalModel):
     """
     Define normal distribution with unknown mean and KNOWN variance
-    theta = [mean/std**2, -1/(2*std**2)]
+    theta = [mean/std**2]
     """ 
     def __init__(self,theta,std=torch.tensor(1)):
         self.std = std
-        self.mean = theta[:,0] * (self.std**2)
+        self.mean = theta * (self.std**2)
         self.theta = theta
 
     def get_samples(self,n):
         eps = torch.randn(self.mean.shape[0], n, device=self.mean.device)
-        return self.mean.unsqueeze(1) + self.std.unsqueeze(1) * eps    
+        return self.mean + self.std * eps    
     
     def t(self, x):
         return torch.stack([x], dim=-1) 

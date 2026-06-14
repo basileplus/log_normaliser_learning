@@ -8,6 +8,7 @@ def logExperimentResult(
     optimizer,
     mu,
     var,
+    target_distrib,
     batch_size,
     dataset_size,
     n_epochs,
@@ -21,6 +22,7 @@ def logExperimentResult(
 ):
     results = {
         "datetime": datetime.now().isoformat(),
+        "target_distrib" : target_distrib,
         "note": note,
         "optimizer": type(optimizer).__name__,
         "learning_rate": (

@@ -1,7 +1,7 @@
 from StatisticalModel import NormalDistribution1D, NormalDistribution1D_unknownStd
 from estimators import estimate_mean, estimate_cov
 from ICNN import ICNN
-from Visualizer import ICNNHeatmapVisualizer
+from Visualizer import ICNN2DHeatmapVisualizer
 import torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
 import matplotlib.pyplot as plt
@@ -53,7 +53,7 @@ train = True
 
 eta_probe = torch.zeros((len(eta_set), eta_set.shape[1]))
 eta_probe[:, 0] = eta_set[:, 0]
-heatVis = ICNNHeatmapVisualizer(eta_set)
+heatVis = ICNN2DHeatmapVisualizer(eta_set)
 
 train_losses = []
 test_losses = []
@@ -171,4 +171,5 @@ if train:
         test_losses = test_losses,
         best_loss=best_loss,
         note="Gaussian, unknown std and mu",
+        target_distrib="1D Gaussian, unknown std"
     )

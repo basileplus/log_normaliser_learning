@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import imageio.v2 as imageio
 import io
 import torch.nn.functional as F
+import numpy as np
 
 class ConjugacyVisualizer:
     """
@@ -53,7 +54,7 @@ class ConjugacyVisualizer:
         imageio.mimsave(filename, frames, duration=duration)
         print(f"File {filename} succesfully saved")
 
-class ICNNHeatmapVisualizer:
+class ICNN2DHeatmapVisualizer:
     """
     Saves a gif of the heatmap of ICNN(eta) over a 2D grid during training.
     The grid is built automatically from the data range passed at init.
@@ -325,4 +326,147 @@ class ICNNHeatmapVisualizer:
         print(f"File {filename} successfully saved")
         plt.close()
 
-    
+
+class ICNN1DVisualizer:
+    def __init__(self, eta_set, resolution=400, quantile=0.02):
+        self.eta_min = torch.quantile(eta_set[:, 0], quantile).item()
+        self.eta_max = torch.quantile(eta_set[:, 0], 1 - quantile).item()
+
+        self.eta_grid = torch.linspace(
+            self.eta_min,
+            self.eta_max,
+            resolution,
+        ).unsqueeze(1)
+
+        self.snapshots = []
+        self.grad_snapshots = []
+
+    def log(self, model):
+        with torch.no_grad():
+            values = model(self.eta_grid).squeeze().cpu()
+        self.snapshots.append(values)
+
+    def log_grad(self, model):
+        eta = self.eta_grid.detach().requires_grad_(True)
+        A = model(eta).sum()
+        theta = torch.autograd.grad(A, eta)[0].detach().squeeze().cpu()
+        self.grad_snapshots.append(theta)
+
+    def save_gif(self, filename="icnn1d.gif", duration=0.1):
+        ymin = min(s.min().item() for s in self.snapshots)
+        ymax = max(s.max().item() for s in self.snapshots)
+
+        frames = []
+
+        for i, snap in enumerate(self.snapshots):
+            fig, ax = plt.subplots()
+
+            ax.plot(
+                self.eta_grid.squeeze().numpy(),
+                snap.numpy(),
+            )
+
+            ax.set_ylim(ymin, ymax)
+            ax.set_xlabel(r"$\eta$")
+            ax.set_ylabel(r"$A^*(\eta)$")
+            ax.set_title(f"Step {i}")
+
+            buf = io.BytesIO()
+            fig.savefig(buf, format="png")
+            plt.close(fig)
+            buf.seek(0)
+            frames.append(imageio.imread(buf))
+
+        imageio.mimsave(filename, frames, duration=duration)
+        print(f"File {filename} successfully saved")
+
+    def save_gif_grad(self, filename="icnn1d_grad.gif", duration=0.1):
+        ymin = min(s.min().item() for s in self.grad_snapshots)
+        ymax = max(s.max().item() for s in self.grad_snapshots)
+
+        frames = []
+
+        for i, snap in enumerate(self.grad_snapshots):
+            fig, ax = plt.subplots()
+
+            ax.plot(
+                self.eta_grid.squeeze().numpy(),
+                snap.numpy(),
+            )
+
+            ax.set_ylim(ymin, ymax)
+            ax.set_xlabel(r"$\eta$")
+            ax.set_ylabel(r"$\theta(\eta)$")
+            ax.set_title(f"Step {i}")
+
+            buf = io.BytesIO()
+            fig.savefig(buf, format="png")
+            plt.close(fig)
+            buf.seek(0)
+            frames.append(imageio.imread(buf))
+
+        imageio.mimsave(filename, frames, duration=duration)
+        print(f"File {filename} successfully saved")
+
+    def save_plot_GT(self, filename="ground_truth.png"):
+        eta = self.eta_grid.squeeze()
+
+        # Gaussian with known variance = 1:
+        # A*(eta) = 1/2 eta^2
+        A = 0.5 * eta ** 2
+
+        plt.figure(figsize=(6, 4))
+        plt.plot(eta.numpy(), A.numpy())
+        plt.xlabel(r"$\eta$")
+        plt.ylabel(r"$A^*(\eta)$")
+        plt.title("Ground truth")
+        plt.savefig(filename, dpi=120)
+        plt.close()
+        print(f"File {filename} successfully saved")
+
+    def save_plot_GT_grad(self, filename="ground_truth_grad.png"):
+        eta = self.eta_grid.squeeze()
+
+        # theta = eta
+        plt.figure(figsize=(6, 4))
+        plt.plot(eta.numpy(), eta.numpy())
+        plt.xlabel(r"$\eta$")
+        plt.ylabel(r"$\theta(\eta)$")
+        plt.title("Ground truth gradient")
+        plt.savefig(filename, dpi=120)
+        plt.close()
+        print(f"File {filename} successfully saved")
+
+    def save_plot_model(self, model, filename="model.png"):
+        with torch.no_grad():
+            values = model(self.eta_grid).squeeze()
+
+        plt.figure(figsize=(6, 4))
+        plt.plot(
+            self.eta_grid.squeeze().numpy(),
+            values.cpu().numpy(),
+        )
+        plt.xlabel(r"$\eta$")
+        plt.ylabel(r"$A^*(\eta)$")
+        plt.title("Learned ICNN")
+        plt.savefig(filename, dpi=120)
+        plt.close()
+        print(f"File {filename} successfully saved")
+
+    def save_plot_model_grad(self, model, filename="model_grad.png"):
+        eta = self.eta_grid.detach().requires_grad_(True)
+
+        A = model(eta).sum()
+        theta = torch.autograd.grad(A, eta)[0].detach().squeeze()
+
+        plt.figure(figsize=(6, 4))
+        plt.plot(
+            eta.detach().squeeze().numpy(),
+            theta.cpu().numpy(),
+        )
+        plt.xlabel(r"$\eta$")
+        plt.ylabel(r"$\theta(\eta)$")
+        plt.title("Learned gradient")
+        plt.savefig(filename, dpi=120)
+        plt.close()
+        print(f"File {filename} successfully saved")
