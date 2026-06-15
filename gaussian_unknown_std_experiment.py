@@ -163,11 +163,11 @@ if train:
 
 if visu:
     if train:
-        heatVis.save_gif(f"visualizations/unknownStd_model_{exp_id}.gif")
-        heatVis.save_gif_grad(f"visualizations/unknownStd_grad_gif_{exp_id}.gif")
-        heatVis.save_plot_GT_grad(f"visualizations/unknownStd_gt_grad_{exp_id}.png")
-        heatVis.save_plot_model_grad(model, f"visualizations/unknownStd_model_grad_{exp_id}.png")
-        heatVis.save_plot_model(model, f"visualizations/unknownStd_model_{exp_id}.png")
-        save_loss_plot(train_losses, test_losses, filename=f"visualizations/unknownStd_loss_{exp_id}.png")
+        heatVis.save_gif(f"visualizations/unknownStd_{exp_id}_model.gif")
+        heatVis.save_gif_grad(f"visualizations/unknownStd_{exp_id}_grad_gif.gif")
+        heatVis.save_plot_GT_grad(f"visualizations/unknownStd_{exp_id}_gt_grad.png")
+        heatVis.save_plot_model_grad(model, f"visualizations/unknownStd_{exp_id}_model_grad.png")
+        heatVis.save_plot_model(model, f"visualizations/unknownStd_{exp_id}_model.png")
+        save_loss_plot(train_losses, test_losses, filename=f"visualizations/unknownStd_{exp_id}_loss.png")
     else :
         heatVis.save_plot_GT_grad()

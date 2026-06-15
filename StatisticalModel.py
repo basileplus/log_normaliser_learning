@@ -49,3 +49,22 @@ class NormalDistribution1D_unknownStd(StatisticalModel):
     
     def t(self, x):
         return torch.stack([x,-x**2], dim=-1) 
+    
+class UniformDistribution1D(StatisticalModel):
+    """
+    Uniform distribution between [a,b]. 
+    Sufficient statistics t(x)=[x]. 
+    theta = torch.tensor([b-a/2])
+    b-a = 10 by default
+    """
+    def __init__(self,theta, width=torch.tensor(10)):
+        theta = theta.squeeze(1)
+        self.a = theta[:] - width.unsqueeze(0)/2
+        self.b = theta[:] + width.unsqueeze(0)/2
+
+    def get_samples(self, n):
+        u = torch.rand((self.a.shape[0], n))
+        return self.a.unsqueeze(1) + (self.b - self.a).unsqueeze(1) * u
+    
+    def t(self, x):
+        return torch.stack([x], dim=-1) 

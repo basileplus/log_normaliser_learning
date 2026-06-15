@@ -1,10 +1,9 @@
-from StatisticalModel import NormalDistribution1D
+from StatisticalModel import UniformDistribution1D
 from estimators import estimate_mean, estimate_cov
 from ICNN import ICNN
 from Visualizer import ICNN1DVisualizer, save_loss_plot
 import torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
-import matplotlib.pyplot as plt
 from experiment_logger import logExperimentResult
 import torch
 
@@ -17,7 +16,7 @@ def compute_loss(model, eta_set, n_samples=256):
     theta_pred = torch.autograd.grad(A_star.sum(), eta)[0].detach()
 
     with torch.no_grad():
-        stat_model = NormalDistribution1D(theta=theta_pred)
+        stat_model = UniformDistribution1D(theta=theta_pred)
         t_samples = stat_model.t(stat_model.get_samples(n_samples))
         mean = estimate_mean(t_samples)
         loss = ((mean - eta_set) ** 2).sum(dim=-1).mean().item()
@@ -27,9 +26,8 @@ def compute_loss(model, eta_set, n_samples=256):
 
 # Input
 T = 4096
-mu = torch.randn(T)
-var = torch.ones(1)
-eta_set = mu.unsqueeze(1)
+eta_set = torch.rand((T,1))*30
+eta_set-= torch.tensor(15).unsqueeze(0)
 batch_size = 16
 n_sample = 512
 num_epoch=4
@@ -77,7 +75,7 @@ if train:
                 inputs=eta_batch, 
                 create_graph=True
             )[0] # theta = grad_eta A*(eta)
-            stat_model = NormalDistribution1D(theta=theta_pred)
+            stat_model = UniformDistribution1D(theta=theta_pred)
 
             if (visu):
                 if batch_idx % log_every ==0:
@@ -148,9 +146,7 @@ if train:
 if train:
     exp_id = logExperimentResult(
         optimizer=optim,
-        target_distrib="1D Gaussian known std",
-        mu=mu,
-        var=var,
+        eta_set="torch.rand((T,1))*30-15",
         batch_size=batch_size,
         dataset_size=T,
         n_epochs=num_epoch,
@@ -158,16 +154,16 @@ if train:
         train_losses = train_losses,
         test_losses = test_losses,
         best_loss=best_loss,
-        note="Gaussian, unknown std and mu",
+        note="theta=b-a/2",
+        target_distrib="1D Uniform, b-a=10"
     )
 
 if visu:
     if train:
-        heatVis.save_gif(f"visualizations/knownStd_{exp_id}_model.gif")
-        heatVis.save_gif_grad(f"visualizations/knownStd_{exp_id}_grad_gif.gif")
-        heatVis.save_plot_GT_grad(f"visualizations/knownStd_{exp_id}_gt_grad.png")
-        heatVis.save_plot_model_grad(model, f"visualizations/knownStd_{exp_id}_model_grad.png")
-        heatVis.save_plot_model(model, f"visualizations/knownStd_{exp_id}_model.png")
-        save_loss_plot(train_losses, test_losses, filename=f"visualizations/knownStd_{exp_id}_loss.png")
+        #heatVis.save_gif(f"visualizations/uniform1D_{exp_id}_model.gif")
+        #heatVis.save_gif_grad(f"visualizations/uniform1D_{exp_id}_grad_gif.gif")
+        heatVis.save_plot_model_grad(model, f"visualizations/uniform1D_{exp_id}_model_grad.png") # doesnt work yet
+        heatVis.save_plot_model(model, f"visualizations/uniform1D_{exp_id}_model.png")
+        save_loss_plot(train_losses, test_losses, filename=f"visualizations/uniform1D_{exp_id}_loss.png")
     else :
         heatVis.save_plot_GT_grad()
