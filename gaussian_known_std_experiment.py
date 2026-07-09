@@ -1,4 +1,4 @@
-from StatisticalModel import NormalDistribution1D
+from Sampler import NormalDistribution1D
 from estimators import estimate_mean, estimate_cov
 from ICNN import ICNN
 from Visualizer import ICNN1DVisualizer, save_loss_plot
@@ -151,6 +151,7 @@ if train:
         target_distrib="1D Gaussian known std",
         mu=mu,
         var=var,
+        training_set="torch.randn(T)",
         batch_size=batch_size,
         dataset_size=T,
         n_epochs=num_epoch,
@@ -158,7 +159,7 @@ if train:
         train_losses = train_losses,
         test_losses = test_losses,
         best_loss=best_loss,
-        note="Gaussian, unknown std and mu",
+        note="Gaussian, known std",
     )
 
 if visu:

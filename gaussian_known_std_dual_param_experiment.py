@@ -1,27 +1,26 @@
-from Sampler import NormalDistribution1D_unknownStd
+from Sampler import NormalDistribution1D_etaParam
 from estimators import estimate_mean, estimate_cov
 from ICNN import ICNN
-from Visualizer import ICNN2DHeatmapVisualizer, save_loss_plot
+from Visualizer import ICNN1DVisualizer, save_loss_plot
 import torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
 import matplotlib.pyplot as plt
 from experiment_logger import logExperimentResult
 import torch
 
-def compute_loss(model, eta_set, n_samples=256):
+def compute_loss(model, theta_set, n_samples=256):
     """
     Compute loss of the model. Not differenciable, only used to plot loss evolution
     """
-    eta = eta_set.detach().requires_grad_(True)
-    A_star = model(eta).squeeze()
-    theta_pred = torch.autograd.grad(A_star.sum(), eta)[0]
-    theta_valid = torch.stack([theta_pred[:,0], F.softplus(theta_pred[:,1])], dim=1).detach()
+    theta = theta_set.detach().requires_grad_(True)
+    A = model(theta).squeeze()
+    eta_pred = torch.autograd.grad(A.sum(), theta)[0].detach()
 
     with torch.no_grad():
-        stat_model = NormalDistribution1D_unknownStd(theta=theta_valid)
+        stat_model = NormalDistribution1D_etaParam(eta=eta_pred)
         t_samples = stat_model.t(stat_model.get_samples(n_samples))
         mean = estimate_mean(t_samples)
-        loss = ((mean - eta_set) ** 2).sum(dim=-1).mean().item()
+        loss = ((mean - eta_pred) ** 2).sum(dim=-1).mean().item()
         if loss > 1e5:
             print("wow big loss")
     return loss
@@ -29,31 +28,29 @@ def compute_loss(model, eta_set, n_samples=256):
 # Input
 T = 4096
 mu = torch.randn(T)
-var = 0.01 + torch.rand(T) 
-eta_set = torch.stack([mu,-(mu**2 + var)],dim=1) # expectation parameters corresponding to ~N(mu,std²)
+var = torch.ones_like(mu)
+theta_set = (mu/var).unsqueeze(1)
 batch_size = 16
 n_sample = 512
-num_epoch=16
+num_epoch=4
 
 perm = torch.randperm(T)
-eta_train_set = eta_set[perm[:int(0.8*T)]]
-eta_test_set = eta_set[perm[int(0.8*T):]]
+theta_train_set = theta_set[perm[:int(0.8*T)]]
+theta_test_set = theta_set[perm[int(0.8*T):]]
 
-train_data = TensorDataset(eta_train_set)
+train_data = TensorDataset(theta_train_set)
 loader = DataLoader(
      dataset=train_data,
      batch_size=batch_size,
      shuffle=True
 )
 
-model = ICNN(2,1)
+model = ICNN(1,1)
 params = list(model.parameters())
 visu = True # True to save a gif
 train = True
 
-eta_probe = torch.zeros((len(eta_set), eta_set.shape[1]))
-eta_probe[:, 0] = eta_set[:, 0]
-heatVis = ICNN2DHeatmapVisualizer(eta_set)
+heatVis = ICNN1DVisualizer(theta_set)
 
 train_losses = []
 test_losses = []
@@ -67,26 +64,25 @@ optim = torch.optim.Adam(model.parameters(), lr=1e-2)
 if train:
     for epoch in range(num_epoch):
         print(f"=== Epoch {epoch+1} | train_loss={sum(train_losses[-10:])/len(train_losses[-10:]) if train_losses else "N/A"} | test_loss={sum(test_losses[-10:])/len(test_losses[-10:]) if test_losses else "N/A"}===")        
-        for (eta_batch,) in loader:
+        for (theta_batch,) in loader:
 
             optim.zero_grad()
 
-            eta_batch = eta_batch.detach().requires_grad_(True)  
-            A_star = model(eta_batch).squeeze()
-            theta_pred = torch.autograd.grad(
-                outputs=A_star.sum(), 
-                inputs=eta_batch, 
+            theta_batch = theta_batch.detach().requires_grad_(True)  
+            A = model(theta_batch).squeeze()
+            eta_pred = torch.autograd.grad(
+                outputs=A.sum(), 
+                inputs=theta_batch, 
                 create_graph=True
             )[0] # theta = grad_eta A*(eta)
-            theta_valid = torch.stack([theta_pred[:,0],F.softplus(theta_pred[:,1])], dim=1) # ensures 1/std**2 > 0
-            stat_model = NormalDistribution1D_unknownStd(theta=theta_valid)
+            stat_model = NormalDistribution1D_etaParam(eta=eta_pred)
 
             if (visu):
                 if batch_idx % log_every ==0:
                     heatVis.log(model)
                     heatVis.log_grad(model)
 
-            if torch.isnan(theta_valid).any() :
+            if torch.isnan(eta_pred).any() :
                 break
 
             batch1 = stat_model.get_samples(n_sample)
@@ -94,9 +90,8 @@ if train:
             t1 = stat_model.t(batch1)
             t2 = stat_model.t(batch2)
             mean = estimate_mean(t1)
-            cov_mat = estimate_cov(t2)
 
-            v = (cov_mat @ (mean - eta_batch).unsqueeze(-1)).squeeze(-1)
+            v = (mean - eta_pred).unsqueeze(-1).squeeze(-1)
 
             # Clamp v, prevent gradient explosions occuring from cov estimate (var X^2~sigma^4)
             v_norm = v.norm()
@@ -104,7 +99,7 @@ if train:
                 v = 10 * v / v_norm
 
             grad = torch.autograd.grad(
-                outputs=theta_valid,
+                outputs=eta_pred,
                 inputs=params,
                 grad_outputs=(2*v)/batch_size,
                 allow_unused=True  
@@ -121,12 +116,11 @@ if train:
                                 p.grad = g
                             else :
                                 p.grad+=g
-            
             optim.step()
 
             # Compute loss
-            train_loss = compute_loss(model, eta_train_set)
-            test_loss = compute_loss(model, eta_test_set)
+            train_loss = compute_loss(model, theta_train_set)
+            test_loss = compute_loss(model, theta_test_set)
             if test_loss < best_loss:  
                 best_loss = test_loss
                 torch.save(model.state_dict(), "best_model.pt")
@@ -144,12 +138,16 @@ if train:
         heatVis.log(model)
         heatVis.log_grad(model)
 
+
+
 # Log results in a csv
 if train:
     exp_id = logExperimentResult(
         optimizer=optim,
+        target_distrib="1D Gaussian known std, eta param",
         mu=mu,
         var=var,
+        training_set="torch.randn(T)",
         batch_size=batch_size,
         dataset_size=T,
         n_epochs=num_epoch,
@@ -157,18 +155,16 @@ if train:
         train_losses = train_losses,
         test_losses = test_losses,
         best_loss=best_loss,
-        training_set="mu = torch.randn(T) ; var = 0.01 + torch.rand(T) ; eta_set = torch.stack([mu,-(mu**2 + var)],dim=1)",
-        note="Gaussian, unknown std and mu",
-        target_distrib="1D Gaussian, unknown std"
+        note="Dual param, Gaussian, known std",
     )
 
 if visu:
     if train:
-        #heatVis.save_gif(f"visualizations/unknownStd_{exp_id}_model.gif")
-        #heatVis.save_gif_grad(f"visualizations/unknownStd_{exp_id}_grad_gif.gif")
-        heatVis.save_plot_GT_grad(f"visualizations/unknownStd_{exp_id}_gt_grad.png")
-        heatVis.save_plot_model_grad(model, f"visualizations/unknownStd_{exp_id}_model_grad.png")
-        heatVis.save_plot_model(model, f"visualizations/unknownStd_{exp_id}_model.png")
-        save_loss_plot(train_losses, test_losses, filename=f"visualizations/unknownStd_{exp_id}_loss.png")
+        heatVis.save_gif(f"visualizations/knownStd_dual_{exp_id}_model.gif")
+        heatVis.save_gif_grad(f"visualizations/knownStd_dual_{exp_id}_grad.gif")
+        heatVis.save_plot_GT_grad(f"visualizations/knownStd_dual_{exp_id}_gt_grad.png")
+        heatVis.save_plot_model_grad(model, f"visualizations/knownStd_dual_{exp_id}_model_grad.png")
+        heatVis.save_plot_model(model, f"visualizations/knownStd_dual_{exp_id}_model.png")
+        save_loss_plot(train_losses, test_losses, filename=f"visualizations/knownStd_dual_{exp_id}_loss.png")
     else :
         heatVis.save_plot_GT_grad()

@@ -1,4 +1,4 @@
-from StatisticalModel import UniformDistribution1D
+from Sampler import UniformDistribution1D
 from estimators import estimate_mean, estimate_cov
 from ICNN import ICNN
 from Visualizer import ICNN1DVisualizer, save_loss_plot
@@ -146,7 +146,7 @@ if train:
 if train:
     exp_id = logExperimentResult(
         optimizer=optim,
-        eta_set="torch.rand((T,1))*30-15",
+        training_set="torch.rand((T,1))*30-15",
         batch_size=batch_size,
         dataset_size=T,
         n_epochs=num_epoch,

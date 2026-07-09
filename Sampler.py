@@ -68,3 +68,19 @@ class UniformDistribution1D(StatisticalModel):
     
     def t(self, x):
         return torch.stack([x], dim=-1) 
+
+class NormalDistribution1D_etaParam(StatisticalModel):
+    """
+    Define normal distribution with unknown mean and known variance parametrized by eta.
+    eta = [mean]
+    """ 
+    def __init__(self,eta,std=torch.tensor(1)):
+        self.std = std
+        self.mean = eta
+
+    def get_samples(self,n):
+        eps = torch.randn(self.mean.shape[0], n, device=self.mean.device)
+        return self.mean + self.std * eps    
+    
+    def t(self, x):
+        return torch.stack([x], dim=-1) 
