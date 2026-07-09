@@ -10,6 +10,6 @@ $$
 
 - `Sampler.py` : class used to instanciate a sampler from which we retrieve samples for a given parameter and can compute the sufficient statistic
 - `*_experiment.py`: each file correspond to a different experiment, namely a different family of distributions target. Those files contain the main SGD algorithm and the manual computation of the gradient
-- `ICNN.py`: define ICNN used to parametrize our mapping. We learn $A^*_\psi(\eta)$ via an ICNN and deduce $\theta_\psi(\eta)=\nabla A^*_\psi(\eta)$
+- `ICNN.py`: define ICNN used to parametrize our mapping. We learn $A^*_\psi(\eta)$ via an ICNN and deduce $\theta_\psi(\eta)=\nabla A^\*_\psi(\eta)$
 - `Visualizer.py` : contain some code to export figures of the experiment
 - `experiment_logger.py`: creates a file to save into a JSON parameters of every runned experiment
