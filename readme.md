@@ -6,7 +6,7 @@ $$
 \mathcal L(\psi) = A(\theta_\psi(\eta)) + A^\star(\eta) - \langle \theta_\psi(\eta), \eta \rangle
 $$
 
-#Files
+# Files
 
 - `Sampler.py` : class used to instanciate a sampler from which we retrieve samples for a given parameter and can compute the sufficient statistic
 - `*_experiment.py`: each file correspond to a different experiment, namely a different family of distributions target. Those files contain the main SGD algorithm and the manual computation of the gradient
